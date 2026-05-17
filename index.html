@@ -245,9 +245,12 @@
       <div id="procedureFields" class="px-5 pb-5 pt-1 space-y-4 border-t border-slate-100"></div>
     </details>
 
-    <p class="text-[11px] leading-relaxed text-slate-400 px-1 pt-1">
-      Інструмент підтримки клінічних рішень. Не замінює клінічну оцінку, інституційні протоколи чи консультацію фахівця.
-    </p>
+    <div class="rounded-xl bg-amber-50 border border-amber-100 px-3.5 py-3 flex gap-2.5">
+      <svg viewBox="0 0 24 24" width="15" height="15" class="text-amber-600 flex-none mt-0.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      <p class="text-[11px] leading-relaxed text-amber-800">
+        Інструмент підтримки клінічних рішень для медичних працівників. Результати — оцінки ймовірності з опублікованих моделей; вони не замінюють клінічну оцінку, обстеження пацієнта та інституційні протоколи. Остаточне рішення приймає лікар.
+      </p>
+    </div>
   </form>
 
   <!-- ============ RIGHT: RESULTS ============ -->
@@ -329,14 +332,47 @@
 </main>
 
 <footer class="max-w-7xl mx-auto px-6 pb-8 pt-2">
-  <p class="text-[11px] text-slate-400 text-center">
-    AKI Risk Suite · усі розрахунки виконуються локально у браузері · мережеві запити не здійснюються
+  <p class="text-[11px] text-slate-400 text-center leading-relaxed">
+    AKI Risk Suite · інструмент підтримки клінічних рішень · не замінює клінічну оцінку<br class="sm:hidden">
+    <span class="hidden sm:inline"> · </span>усі розрахунки виконуються локально у браузері · мережеві запити не здійснюються<br>
+    <span class="text-slate-300">Версія 1.1 · оновлено 17.05.2026</span>
   </p>
 </footer>
 
 <!-- toast -->
 <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
   Зведення скопійовано
+</div>
+
+<!-- ===================== DISCLAIMER MODAL ===================== -->
+<div id="disclaimerOverlay" class="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-auto scroll-thin">
+    <div class="bg-amber-50 border-b border-amber-100 px-5 sm:px-6 py-4 flex items-center gap-3">
+      <span class="h-9 w-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center flex-none">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </span>
+      <div>
+        <h2 class="text-base font-bold tracking-tight text-slate-900">Важливо — перед використанням</h2>
+        <p class="text-[11px] text-amber-700">Ознайомтеся з призначенням та обмеженнями інструмента</p>
+      </div>
+    </div>
+    <div class="px-5 sm:px-6 py-4 space-y-3 text-[13px] leading-relaxed text-slate-700">
+      <p><span class="font-semibold text-slate-900">AKI Risk Suite</span> — інструмент підтримки клінічних рішень для стратифікації ризику гострого ураження нирок. Призначений для кваліфікованих медичних працівників.</p>
+      <ul class="space-y-2">
+        <li class="flex gap-2.5"><span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span><span>Інструмент <span class="font-semibold">не є засобом діагностики чи лікування</span> і не призначений для пацієнтів.</span></li>
+        <li class="flex gap-2.5"><span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span><span>Результати — це <span class="font-semibold">оцінки ймовірності</span> на основі опублікованих прогностичних моделей. Вони не замінюють клінічну оцінку, обстеження пацієнта та інституційні протоколи.</span></li>
+        <li class="flex gap-2.5"><span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span><span>Моделі мають <span class="font-semibold">обмеження валідації</span>: шкала AKICS не проходила зовнішньої валідації; Mehran 2.0 реалізовано як доконтрастну модель 1; усі шкали валідовані в окремих популяціях і можуть бути неточними поза ними.</span></li>
+        <li class="flex gap-2.5"><span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 flex-none"></span><span>Остаточне рішення щодо ведення пацієнта завжди приймає лікар. Перед впровадженням у закладі погодьте інструмент із <span class="font-semibold">клінічним врядуванням установи</span>.</span></li>
+        <li class="flex gap-2.5"><span class="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 flex-none"></span><span>Жодні введені дані <span class="font-semibold">не зберігаються й не передаються</span> — усі розрахунки виконуються локально у вашому браузері.</span></li>
+      </ul>
+      <p class="text-[11px] text-slate-400 pt-1">Версія 1.1 · оновлено 17.05.2026 · джерела наведено у блоці доказовості кожної шкали.</p>
+    </div>
+    <div class="px-5 sm:px-6 py-4 border-t border-slate-100">
+      <button id="disclaimerAccept" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl px-4 py-2.5 transition-colors">
+        Зрозуміло, продовжити
+      </button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -1171,6 +1207,20 @@ document.addEventListener('keydown', (e) => {
   if (e.key === '3') switchTab('akics');
   if (e.key === '4') switchTab('gupta');
 });
+
+/* ---------- disclaimer modal ---------- */
+(function () {
+  const overlay = $('disclaimerOverlay');
+  const accept = $('disclaimerAccept');
+  if (!overlay || !accept) return;
+  const dismiss = () => {
+    overlay.style.opacity = '0';
+    overlay.style.transition = 'opacity .25s ease';
+    setTimeout(() => { overlay.style.display = 'none'; }, 260);
+  };
+  accept.addEventListener('click', dismiss);
+  accept.focus();
+})();
 
 /* ---------- boot ---------- */
 initFromState();
