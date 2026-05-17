@@ -1,0 +1,1179 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AKI Risk Suite — Інструменти стратифікації ризику ГУН</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          sans: ['-apple-system','BlinkMacSystemFont','Segoe UI','Roboto','Helvetica Neue','Arial','sans-serif']
+        }
+      }
+    }
+  }
+</script>
+<style>
+  html { -webkit-text-size-adjust: 100%; }
+  body { font-feature-settings: "tnum"; }
+  /* number input spinners off */
+  input[type=number]::-webkit-outer-spin-button,
+  input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  input[type=number] { -moz-appearance: textfield; }
+
+  /* collapsible sections */
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  .chev { transition: transform .22s ease; }
+  details[open] .chev { transform: rotate(90deg); }
+
+  /* tab + panel transitions */
+  .fade-in { animation: fadeIn .28s ease both; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  .score-pulse { animation: pulse .35s ease; }
+  @keyframes pulse { 0%{transform:scale(1);} 45%{transform:scale(1.07);} 100%{transform:scale(1);} }
+
+  .bar-fill { transition: left .4s cubic-bezier(.34,1.2,.64,1); }
+  .seg-glow { transition: box-shadow .3s ease, transform .3s ease; }
+
+  /* custom toggle switch */
+  .switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .track { width: 44px; height: 24px; border-radius: 999px; background: #cbd5e1; transition: background .2s ease; position: relative; flex: none; }
+  .knob { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 999px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .2s cubic-bezier(.34,1.3,.64,1); }
+  .switch input:checked + .track { background: #4f46e5; }
+  .switch input:checked + .track .knob { left: 23px; }
+  .switch input:focus-visible + .track { box-shadow: 0 0 0 3px rgba(99,102,241,.35); }
+
+  /* segmented control */
+  .seg-btn { transition: all .15s ease; }
+
+  ::selection { background: #c7d2fe; }
+  .scroll-thin::-webkit-scrollbar { width: 8px; }
+  .scroll-thin::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+</style>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans antialiased min-h-screen">
+
+<!-- ===================== HEADER ===================== -->
+<header class="border-b border-slate-200 bg-white/90 backdrop-blur sticky top-0 z-30">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex items-center gap-3">
+    <div class="h-10 w-10 rounded-xl bg-indigo-600 flex items-center justify-center shadow-sm shadow-indigo-200 flex-none">
+      <svg viewBox="0 0 24 24" class="h-6 w-6 text-white" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3c-3.5 0-6 2.3-6 5.5 0 2 .9 3.3 2 4.4 1.4 1.4 2 2.6 2 4.6V21"/>
+        <path d="M12 3c3.5 0 6 2.3 6 5.5 0 2-.9 3.3-2 4.4-1.4 1.4-2 2.6-2 4.6V21"/>
+        <path d="M12 8.5v4"/>
+      </svg>
+    </div>
+    <div class="min-w-0">
+      <h1 class="text-[17px] sm:text-xl font-bold tracking-tight leading-none">AKI Risk Suite</h1>
+      <p class="text-[11px] sm:text-xs text-slate-500 mt-0.5 leading-none">Інструменти стратифікації ризику гострого ураження нирок</p>
+    </div>
+    <div class="ml-auto hidden md:flex items-center gap-2">
+      <button id="copyBtn" class="text-xs font-medium text-slate-600 hover:text-indigo-600 border border-slate-200 hover:border-indigo-300 rounded-lg px-3 py-1.5 transition-colors">
+        Скопіювати зведення
+      </button>
+      <button id="resetBtn" class="text-xs font-medium text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-300 rounded-lg px-3 py-1.5 transition-colors">
+        Скинути
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== TABS ===================== -->
+<div class="max-w-7xl mx-auto px-4 sm:px-6 pt-5">
+  <div role="tablist" class="grid grid-cols-2 sm:inline-flex w-full sm:w-auto bg-slate-100 p-1 rounded-xl border border-slate-200 gap-1">
+    <button data-tab="thakar" role="tab" class="tab-btn text-[13px] sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg transition-all">
+      Thakar
+      <span class="hidden sm:inline font-normal opacity-70"> · CSA‑AKI</span>
+    </button>
+    <button data-tab="mehran" role="tab" class="tab-btn text-[13px] sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg transition-all">
+      Mehran 2.0
+      <span class="hidden sm:inline font-normal opacity-70"> · CI‑AKI</span>
+    </button>
+    <button data-tab="akics" role="tab" class="tab-btn text-[13px] sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg transition-all">
+      AKICS
+      <span class="hidden sm:inline font-normal opacity-70"> · усі стадії</span>
+    </button>
+    <button data-tab="gupta" role="tab" class="tab-btn text-[13px] sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg transition-all">
+      Хірургічний
+      <span class="hidden sm:inline font-normal opacity-70"> · некардіо</span>
+    </button>
+  </div>
+  <p id="tabDesc" class="text-xs text-slate-500 mt-2.5 ml-1"></p>
+</div>
+
+<!-- ===================== MAIN GRID ===================== -->
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] gap-5 items-start">
+
+  <!-- ============ LEFT: INPUT FORM ============ -->
+  <form id="inputForm" autocomplete="off" class="space-y-3" onsubmit="return false">
+
+    <!-- SECTION A -->
+    <details open class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <summary class="flex items-center gap-3 px-5 py-4 select-none hover:bg-slate-50/70">
+        <span class="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-none">
+          <svg viewBox="0 0 24 24" class="h-4.5 w-4.5" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        </span>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-sm font-bold tracking-tight">A · Профіль пацієнта та аналізи</h2>
+          <p class="text-[11px] text-slate-500">Спільні параметри · синхронізуються між калькуляторами</p>
+        </div>
+        <svg class="chev h-4 w-4 text-slate-400 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="px-5 pb-5 pt-1 space-y-4 border-t border-slate-100">
+
+        <!-- Age -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Вік <span class="text-slate-400 font-normal">(18–110 років)</span></label>
+          <input type="number" data-field="age" data-kind="number" min="18" max="110" value="68"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
+        </div>
+
+        <!-- Sex -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Стать</label>
+          <div class="grid grid-cols-2 gap-2" data-seg-group="sex">
+            <button type="button" data-seg="sex" data-value="male" class="seg-btn rounded-lg border px-3 py-2 text-sm font-medium">Чоловіча</button>
+            <button type="button" data-seg="sex" data-value="female" class="seg-btn rounded-lg border px-3 py-2 text-sm font-medium">Жіноча</button>
+          </div>
+        </div>
+
+        <!-- Creatinine + unit toggle -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <label class="text-xs font-semibold text-slate-700">Креатинін сироватки</label>
+            <div class="inline-flex bg-slate-100 rounded-md p-0.5 border border-slate-200" data-seg-group="crUnit">
+              <button type="button" data-seg="crUnit" data-value="mgdl" class="seg-btn text-[11px] font-semibold px-2 py-0.5 rounded">мг/дл</button>
+              <button type="button" data-seg="crUnit" data-value="umol" class="seg-btn text-[11px] font-semibold px-2 py-0.5 rounded">мкмоль/л</button>
+            </div>
+          </div>
+          <input type="number" id="crInput" data-field="creatinine" step="0.01" min="0"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
+        </div>
+
+        <!-- eGFR -->
+        <div class="rounded-lg bg-slate-50 border border-slate-200 p-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold text-slate-700">Розрахункова ШКФ (CKD‑EPI 2021)</span>
+            <label class="flex items-center gap-1.5 text-[11px] text-slate-500 cursor-pointer">
+              <input type="checkbox" id="egfrManualToggle" class="h-3.5 w-3.5 rounded accent-indigo-600" />
+              ввести вручну
+            </label>
+          </div>
+          <div id="egfrAutoWrap" class="mt-2 flex items-baseline gap-1.5">
+            <span id="egfrValue" class="text-2xl font-bold tracking-tight text-indigo-700">—</span>
+            <span class="text-xs text-slate-500">мл/хв/1.73м²</span>
+          </div>
+          <div id="egfrManualWrap" class="mt-2 hidden">
+            <input type="number" data-field="egfrManual" data-kind="number" min="1" max="160" placeholder="ШКФ, мл/хв/1.73м²"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <!-- SECTION B -->
+    <details open class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <summary class="flex items-center gap-3 px-5 py-4 select-none hover:bg-slate-50/70">
+        <span class="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-none">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        </span>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-sm font-bold tracking-tight">B · Супутні патології</h2>
+          <p class="text-[11px] text-slate-500">Спільні фактори ризику</p>
+        </div>
+        <svg class="chev h-4 w-4 text-slate-400 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div class="px-5 pb-5 pt-1 space-y-4 border-t border-slate-100">
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Цукровий діабет</label>
+          <select data-field="diabetes" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">
+            <option value="none">Немає</option>
+            <option value="oral">Пероральна терапія</option>
+            <option value="insulin">Інсулінозалежний</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Застійна серцева недостатність / клас NYHA</label>
+          <select data-field="chf" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">
+            <option value="none">Немає</option>
+            <option value="I">Клас I</option>
+            <option value="II">Клас II</option>
+            <option value="III">Клас III</option>
+            <option value="IV">Клас IV</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1.5">Гемоглобін <span class="text-slate-400 font-normal">(г/дл)</span></label>
+          <input type="number" data-field="hemoglobin" data-kind="number" step="0.1" min="3" max="22" value="13.5"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
+          <p class="text-[11px] text-slate-400 mt-1">Анемія: &lt;13 г/дл (Ht&lt;39%) ♂ · &lt;12 г/дл (Ht&lt;36%) ♀</p>
+        </div>
+
+        <div class="grid grid-cols-1 gap-2.5 pt-1">
+          <label class="switch flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5 cursor-pointer hover:bg-slate-50">
+            <span class="text-sm font-medium text-slate-700">Хронічна хвороба нирок (ХХН)</span>
+            <input type="checkbox" data-field="ckd" /><span class="track"><span class="knob"></span></span>
+          </label>
+          <label class="switch flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5 cursor-pointer hover:bg-slate-50">
+            <span class="text-sm font-medium text-slate-700">ХОЗЛ (хронічне обструктивне захворювання легень)</span>
+            <input type="checkbox" data-field="copd" /><span class="track"><span class="knob"></span></span>
+          </label>
+        </div>
+      </div>
+    </details>
+
+    <!-- SECTION C — dynamic -->
+    <details open class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <summary class="flex items-center gap-3 px-5 py-4 select-none hover:bg-slate-50/70">
+        <span class="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center flex-none">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        </span>
+        <div class="flex-1 min-w-0">
+          <h2 class="text-sm font-bold tracking-tight">C · Процедурні фактори</h2>
+          <p id="secCDesc" class="text-[11px] text-slate-500">Специфічні для обраного калькулятора</p>
+        </div>
+        <svg class="chev h-4 w-4 text-slate-400 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+      </summary>
+      <div id="procedureFields" class="px-5 pb-5 pt-1 space-y-4 border-t border-slate-100"></div>
+    </details>
+
+    <p class="text-[11px] leading-relaxed text-slate-400 px-1 pt-1">
+      Інструмент підтримки клінічних рішень. Не замінює клінічну оцінку, інституційні протоколи чи консультацію фахівця.
+    </p>
+  </form>
+
+  <!-- ============ RIGHT: RESULTS ============ -->
+  <div class="lg:sticky lg:top-24 space-y-3">
+
+    <!-- Score card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div id="riskHeader" class="px-5 sm:px-6 py-5 transition-colors duration-300">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500" id="calcTitle">—</p>
+            <div class="flex items-baseline gap-2 mt-1">
+              <span id="scoreNum" class="text-5xl font-bold tracking-tighter">0</span>
+              <span id="scoreUnit" class="text-sm font-medium text-slate-500">балів</span>
+            </div>
+          </div>
+          <div id="riskBadge" class="flex-none rounded-xl px-3.5 py-2 text-center">
+            <p class="text-[10px] font-semibold uppercase tracking-wide opacity-80">Категорія</p>
+            <p id="riskLabel" class="text-sm font-bold leading-tight mt-0.5">—</p>
+          </div>
+        </div>
+
+        <!-- gauge -->
+        <div class="mt-5">
+          <div class="relative h-3 rounded-full overflow-hidden flex" id="gaugeTrack"></div>
+          <div class="relative h-0">
+            <div id="gaugeMarker" class="bar-fill absolute -top-[18px] -translate-x-1/2" style="left:0%">
+              <svg width="16" height="16" viewBox="0 0 16 16" class="drop-shadow"><path d="M8 16L1 6h14z" fill="#0f172a"/></svg>
+            </div>
+          </div>
+          <div id="gaugeLabels" class="flex mt-1.5 text-[10px] font-medium text-slate-400"></div>
+        </div>
+      </div>
+
+      <!-- predicted outcome -->
+      <div class="px-5 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/60">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500" id="outcomeLabel">Прогнозований результат</p>
+            <p id="outcomeValue" class="text-lg font-bold tracking-tight mt-0.5 text-slate-800">—</p>
+          </div>
+          <div id="secondaryMetric" class="text-right"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- contributing factors -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="px-5 sm:px-6 py-3.5 border-b border-slate-100">
+        <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500">Внесок факторів</h3>
+      </div>
+      <div id="factorList" class="px-5 sm:px-6 py-3 max-h-56 overflow-auto scroll-thin"></div>
+    </div>
+
+    <!-- evidence + recommendations -->
+    <div class="rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div class="bg-indigo-600 px-5 sm:px-6 py-3.5 flex items-center gap-2.5">
+        <svg viewBox="0 0 24 24" width="16" height="16" class="text-indigo-200 flex-none" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.3h6c0-1 .4-1.8 1-2.3A7 7 0 0 0 12 2z"/></svg>
+        <h3 class="text-sm font-bold text-white tracking-tight">Клінічна доказовість та рекомендації</h3>
+      </div>
+      <div class="bg-white px-5 sm:px-6 py-4 space-y-4">
+        <div class="flex flex-wrap gap-2">
+          <span id="aurocChip" class="text-[11px] font-semibold bg-indigo-50 text-indigo-700 rounded-full px-2.5 py-1"></span>
+          <span id="citationChip" class="text-[11px] font-medium bg-slate-100 text-slate-600 rounded-full px-2.5 py-1"></span>
+        </div>
+        <div>
+          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2">Рекомендований ведення пацієнта</p>
+          <ul id="recList" class="space-y-2"></ul>
+        </div>
+        <div id="contextNote"></div>
+      </div>
+    </div>
+
+    <div class="flex md:hidden gap-2">
+      <button id="copyBtnM" class="flex-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg px-3 py-2">Скопіювати зведення</button>
+      <button id="resetBtnM" class="flex-1 text-xs font-medium text-slate-600 border border-slate-200 rounded-lg px-3 py-2">Скинути</button>
+    </div>
+  </div>
+</main>
+
+<footer class="max-w-7xl mx-auto px-6 pb-8 pt-2">
+  <p class="text-[11px] text-slate-400 text-center">
+    AKI Risk Suite · усі розрахунки виконуються локально у браузері · мережеві запити не здійснюються
+  </p>
+</footer>
+
+<!-- toast -->
+<div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg opacity-0 pointer-events-none transition-opacity duration-300 z-50">
+  Зведення скопійовано
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   AKI RISK SUITE — Vanilla JS, reactive O(1) recalculation
+   ============================================================ */
+
+/* ---------- application state ---------- */
+const DEFAULT_STATE = {
+  // shared — section A
+  age: 68,
+  sex: 'male',
+  creatinine: 1.0,        // ALWAYS stored internally in mg/dL
+  crUnit: 'mgdl',         // display unit only
+  egfrManual: 75,
+  egfrMode: 'auto',
+  // shared — section B
+  diabetes: 'none',
+  chf: 'none',
+  ckd: false,
+  copd: false,
+  hemoglobin: 13.5,
+  // shared cardiac (used by Thakar + Mehran)
+  lvef: 55,
+  // Thakar procedural
+  thakarSurgery: 'cabg',
+  thakarIABP: false,
+  thakarRedo: false,
+  thakarEmergency: false,
+  // Mehran procedural
+  mehranPresentation: 'stable',
+  mehranContrast: 150,
+  mehranSupport: false,
+  // shared lab — basal/pre-op capillary glucose (Mehran + AKICS)
+  glucose: 110,
+  // AKICS procedural (intra- & early post-op)
+  akicsCombined: false,
+  akicsLowCO: false,
+  akicsCPB: 90,
+  akicsCVP: 10,
+  // Surgical (non-cardiac) procedural
+  gSurgery: 'ortho',
+  gAsa: 'II',
+  gEmergency: false,
+  gHypertension: false,
+  gAscites: false,
+  // active tab
+  tab: 'thakar'
+};
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+
+/* ---------- constants ---------- */
+const MGDL_TO_UMOL = 88.4;
+
+/* ---------- DOM cache ---------- */
+const $ = (id) => document.getElementById(id);
+const DOM = {};
+['inputForm','procedureFields','tabDesc','secCDesc','crInput','egfrValue',
+ 'egfrManualToggle','egfrAutoWrap','egfrManualWrap','riskHeader','calcTitle',
+ 'scoreNum','scoreUnit','riskBadge','riskLabel','gaugeTrack','gaugeMarker',
+ 'gaugeLabels','outcomeLabel','outcomeValue','secondaryMetric','factorList',
+ 'aurocChip','citationChip','recList','contextNote','toast']
+ .forEach(id => DOM[id] = $(id));
+
+/* ============================================================
+   CLINICAL ENGINE
+   ============================================================ */
+
+/* CKD-EPI 2021 creatinine equation (race-free) — Scr in mg/dL */
+function computeEGFR(scrMgdl, age, sex) {
+  if (!(scrMgdl > 0) || !(age > 0)) return null;
+  const female = sex === 'female';
+  const k = female ? 0.7 : 0.9;
+  const a = female ? -0.241 : -0.302;
+  const r = scrMgdl / k;
+  const egfr = 142
+    * Math.pow(Math.min(r, 1), a)
+    * Math.pow(Math.max(r, 1), -1.200)
+    * Math.pow(0.9938, age)
+    * (female ? 1.012 : 1);
+  return egfr;
+}
+
+/* effective eGFR — auto-computed or manually entered */
+function currentEGFR() {
+  if (state.egfrMode === 'manual') return state.egfrManual;
+  return computeEGFR(state.creatinine, state.age, state.sex);
+}
+
+/* ---------- Thakar (Cleveland Clinic) — CSA-AKI ---------- */
+function calcThakar() {
+  let s = 0; const f = [];
+  const add = (label, pts) => { s += pts; f.push({ label, pts }); };
+
+  if (state.sex === 'female') add('Жіноча стать', 1);
+  if (state.chf !== 'none') add('Застійна серцева недостатність', 1);
+  if (state.lvef < 35) add('ФВЛШ < 35%', 1);
+  if (state.thakarIABP) add('Передопераційний ВАБК', 2);
+  if (state.copd) add('ХОЗЛ', 1);
+  if (state.diabetes === 'insulin') add('Інсулінозалежний діабет', 1);
+  if (state.thakarRedo) add('Повторна операція на серці', 1);
+  if (state.thakarEmergency) add('Екстрена операція', 2);
+  if (state.thakarSurgery === 'valve') add('Операція на клапані', 1);
+  else if (state.thakarSurgery === 'cabgvalve') add('АКШ + клапан', 2);
+  else if (state.thakarSurgery === 'other') add('Інша складна операція на серці', 2);
+
+  const egfr = currentEGFR();
+  if (egfr != null) {
+    if (egfr < 20) add('ШКФ < 20 / діаліз', 5);
+    else if (egfr < 30) add('ШКФ 20–29', 3);
+    else if (egfr < 60) add('ШКФ 30–59', 1);
+  }
+  return { score: s, factors: f };
+}
+
+/* ---------- Mehran 2.0 — pre-procedural Model 1 — CI-AKI ---------- */
+function calcMehran() {
+  let s = 0; const f = [];
+  const add = (label, pts) => { s += pts; f.push({ label, pts }); };
+
+  const presMap = {
+    stable: { p: 0, l: 'Стабільна стенокардія / безсимптомний' },
+    ua:     { p: 2, l: 'Нестабільна стенокардія' },
+    nstemi: { p: 4, l: 'ІМ без елевації ST (NSTEMI)' },
+    stemi:  { p: 8, l: 'ІМ з елевацією ST (STEMI)' }
+  };
+  const pr = presMap[state.mehranPresentation];
+  if (pr.p > 0) add('Клінічна картина: ' + pr.l, pr.p);
+
+  const egfr = currentEGFR();
+  if (egfr != null) {
+    if (egfr < 30) add('ШКФ < 30', 4);
+    else if (egfr < 60) add('ШКФ 30–59', 1);
+  }
+  if (state.lvef < 40) add('ФВЛШ < 40%', 2);
+  if (state.diabetes === 'insulin') add('Інсулінозалежний діабет', 2);
+  else if (state.diabetes === 'oral') add('Діабет (пероральна терапія)', 1);
+  if (state.hemoglobin < 11) add('Гемоглобін < 11 г/дл', 1);
+  if (state.glucose >= 150) add('Базальна глюкоза ≥ 150 мг/дл', 1);
+  if (state.chf !== 'none') add('Застійна серцева недостатність', 1);
+  if (state.age >= 75) add('Вік ≥ 75 років', 1);
+
+  return { score: s, factors: f };
+}
+
+/* ---------- Non-cardiac surgical AKI risk index ---------- */
+/* General-surgery AKI risk index (Kheterpal et al., Anesthesiology 2009) */
+function calcSurgical() {
+  let n = 0; const f = [];
+  const add = (label) => { n++; f.push({ label, pts: 1 }); };
+
+  if (state.age >= 56) add('Вік ≥ 56 років');
+  if (state.sex === 'male') add('Чоловіча стать');
+  if (state.gEmergency) add('Екстрена операція');
+
+  const intraperitoneal = (state.gSurgery === 'intraperit' || state.gSurgery === 'hpb');
+  if (intraperitoneal) add('Інтраперитонеальна операція');
+
+  if (state.diabetes === 'oral') add('Діабет (пероральна терапія)');
+  else if (state.diabetes === 'insulin') add('Діабет (інсулінотерапія)');
+
+  if (state.chf !== 'none') add('Активна застійна СН');
+  if (state.gAscites) add('Асцит');
+  if (state.gHypertension) add('Артеріальна гіпертензія');
+
+  const cr = state.creatinine;
+  if (cr > 2.0) add('Помірна ниркова недостатність (Cr > 2.0 мг/дл)');
+  else if (cr > 1.2) add('Легка ниркова недостатність (Cr 1.2–2.0 мг/дл)');
+
+  return { score: n, factors: f };
+}
+
+/* ---------- AKICS — any-stage AKI after cardiac surgery ---------- */
+/* Palomba H et al., Kidney Int 2007 — Table 4 point weights */
+function calcAKICS() {
+  let s = 0; const f = [];
+  const add = (label, pts) => { s += pts; f.push({ label, pts }); };
+
+  if (state.akicsCombined) add('Комбінована операція', 3.7);
+  if (state.chf === 'III' || state.chf === 'IV') add('ЗСН NYHA > 2 (клас III–IV)', 3.2);
+  if (state.creatinine > 1.2) add('Передоп. креатинін > 1.2 мг/дл', 3.1);
+  if (state.akicsLowCO) add('Синдром низького серцевого викиду', 2.5);
+  if (state.age > 65) add('Вік > 65 років', 2.3);
+  if (state.akicsCPB > 120) add('Час штучного кровообігу > 120 хв', 1.8);
+  if (state.glucose > 140) add('Передоп. капілярна глюкоза > 140 мг/дл', 1.7);
+  if (state.akicsCVP > 14) add('ЦВТ > 14 см H₂O', 1.7);
+
+  return { score: Math.round(s * 10) / 10, factors: f };
+}
+
+/* ============================================================
+   RISK STRATIFICATION CONFIG
+   ============================================================ */
+const TONES = {
+  low:  { bg:'bg-emerald-50', badge:'bg-emerald-100 text-emerald-800', bar:'#10b981', text:'text-emerald-700', dot:'bg-emerald-500' },
+  mod:  { bg:'bg-amber-50',   badge:'bg-amber-100 text-amber-800',     bar:'#f59e0b', text:'text-amber-700',   dot:'bg-amber-500' },
+  high: { bg:'bg-orange-50',  badge:'bg-orange-100 text-orange-800',   bar:'#f97316', text:'text-orange-700',  dot:'bg-orange-500' },
+  vhigh:{ bg:'bg-rose-50',    badge:'bg-rose-100 text-rose-800',       bar:'#e11d48', text:'text-rose-700',    dot:'bg-rose-500' }
+};
+
+const CALCS = {
+  thakar: {
+    title: 'Шкала Thakar · кардіохірургічна ГУН',
+    desc: 'Ризик ГУН, асоційованого з кардіохірургічними втручаннями (CSA‑AKI). Прогнозує потребу в діалізі після операції на серці.',
+    unit: 'балів',
+    barMax: 13,
+    outcomeLabel: 'Ризик ГУН, що потребує діалізу',
+    auroc: 'C‑статистика ≈ 0.76–0.82',
+    citation: 'Thakar CV та ін., J Am Soc Nephrol 2005',
+    calc: calcThakar,
+    tiers: [
+      { key:'low',  label:'Низький',      lo:0, hi:2,  outcome:'≈ 0.4%' },
+      { key:'mod',  label:'Помірний',     lo:3, hi:5,  outcome:'≈ 2.0%' },
+      { key:'high', label:'Високий',      lo:6, hi:8,  outcome:'≈ 9.5%' },
+      { key:'vhigh',label:'Дуже високий', lo:9, hi:13, outcome:'≈ 20%+' }
+    ]
+  },
+  mehran: {
+    title: 'Шкала Mehran 2.0 · контраст‑індукована ГУН',
+    desc: 'Ризик контраст‑індукованого ГУН (CI‑AKI) після ПКВ / коронарографії. Доконтрастна модель 1 (8 змінних).',
+    unit: 'балів',
+    barMax: 20,
+    outcomeLabel: 'Орієнтовний ризик CA‑AKI',
+    auroc: 'AUROC ≈ 0.84',
+    citation: 'Mehran R та ін., Lancet 2021 (Mehran‑2, модель 1)',
+    calc: calcMehran,
+    tiers: [
+      { key:'low',  label:'Низький',      lo:0,  hi:2,  outcome:'≈ < 5%' },
+      { key:'mod',  label:'Помірний',     lo:3,  hi:7,  outcome:'≈ 7–10%' },
+      { key:'high', label:'Високий',      lo:8,  hi:11, outcome:'≈ 15–20%' },
+      { key:'vhigh',label:'Дуже високий', lo:12, hi:20, outcome:'≈ 25%+' }
+    ]
+  },
+  gupta: {
+    title: 'Хірургічний індекс ГУН · некардіохірургічні втручання',
+    desc: 'Передопераційний ризик ГУН для некардіохірургічних (загальнохірургічних) втручань. Класифікація за класами I–V.',
+    unit: 'факторів',
+    barMax: 9,
+    outcomeLabel: 'Прогнозована частота післяопераційного ГУН',
+    auroc: 'C‑статистика ≈ 0.80',
+    citation: 'Kheterpal S та ін., Anesthesiology 2009',
+    calc: calcSurgical,
+    isClass: true,
+    tiers: [
+      { key:'low',  label:'Клас I',   roman:'I',   lo:0, hi:0, outcome:'≈ 0.2%' },
+      { key:'low',  label:'Клас II',  roman:'II',  lo:1, hi:2, outcome:'≈ 0.8%' },
+      { key:'mod',  label:'Клас III', roman:'III', lo:3, hi:3, outcome:'≈ 1.8%' },
+      { key:'high', label:'Клас IV',  roman:'IV',  lo:4, hi:5, outcome:'≈ 3.3%' },
+      { key:'vhigh',label:'Клас V',   roman:'V',   lo:6, hi:9, outcome:'≈ 8.9%' }
+    ]
+  },
+  akics: {
+    title: 'Шкала AKICS · ГУН після кардіохірургії (усі стадії)',
+    desc: 'Ризик ГУН будь-якої стадії після планової кардіохірургії. Інтегрує перед-, інтра- та ранні післяопераційні фактори; застосовується при надходженні у ВРІТ.',
+    unit: 'балів',
+    barMax: 20,
+    continuous: true,
+    decimals: true,
+    outcomeLabel: 'Прогнозована частота ГУН',
+    auroc: 'AUROC ≈ 0.84',
+    citation: 'Palomba H та ін., Kidney Int 2007',
+    calc: calcAKICS,
+    tiers: [
+      { key:'low',  label:'Дуже низький', lo:0,  hi:4,  outcome:'≈ 1.5%' },
+      { key:'low',  label:'Низький',      lo:4,  hi:8,  outcome:'≈ 4.3%' },
+      { key:'mod',  label:'Помірний',     lo:8,  hi:12, outcome:'≈ 9.1%' },
+      { key:'high', label:'Високий',      lo:12, hi:16, outcome:'≈ 21.8%' },
+      { key:'vhigh',label:'Дуже високий', lo:16, hi:20, outcome:'≈ 62.5%' }
+    ]
+  }
+};
+
+/* tier lookup */
+function tierFor(cfg, score) {
+  for (const t of cfg.tiers) if (score >= t.lo && score <= t.hi) return t;
+  return cfg.tiers[cfg.tiers.length - 1];
+}
+
+/* ============================================================
+   EVIDENCE-BASED RECOMMENDATIONS
+   ============================================================ */
+const RECS = {
+  thakar: {
+    low: ['Стандартне периопераційне ведення; підтримуйте еуволемію.',
+          'Визначте базовий креатинін; контроль діурезу інтраопераційно.'],
+    mod: ['Перипериопераційна гідратація ізотонічним розчином (0.9% NaCl).',
+          'Уникайте нефротоксичних препаратів (НПЗЗ, аміноглікозиди).',
+          'Розгляньте тимчасову відміну іАПФ/БРА перед операцією.',
+          'Моніторинг креатиніну сироватки щодня протягом 48–72 год.'],
+    high:['Активна гідратація; цілеспрямована перфузія, мінімізація часу ШК.',
+          'Уникайте йодованого контрасту у передопераційному періоді.',
+          'Розгляньте консультацію нефролога перед втручанням.',
+          'Щоденний моніторинг креатиніну та діурезу протягом 72 год.'],
+    vhigh:['Інтенсивний (ВРІТ) післяопераційний моніторинг функції нирок.',
+           'Готовність до ниркової замісної терапії; ранній доступ.',
+           'Мультидисциплінарне обговорення доцільності/обсягу втручання.',
+           'Мінімізація гемодилюції та нефротоксичного навантаження.']
+  },
+  mehran: {
+    low: ['Стандартна периопроцедурна гідратація; мінімальний об\u2019єм контрасту.',
+          'Контроль креатиніну при наявності додаткових факторів ризику.'],
+    mod: ['Гідратація ізотонічним розчином до та після процедури.',
+          'Низько‑ або ізоосмолярний контраст; мінімізуйте об\u2019єм.',
+          'Цільове співвідношення об\u2019єм контрасту / ШКФ < 3.',
+          'Уникайте нефротоксичних препаратів; контроль креатиніну 48–72 год.'],
+    high:['Агресивна гідратація під контролем волемічного статусу.',
+          'Розгляньте поетапне втручання для зменшення дози контрасту.',
+          'Консультація нефролога; щоденний креатинін протягом 48–72 год.',
+          'Перегляньте нефротоксичну терапію (іАПФ/БРА, діуретики, НПЗЗ).'],
+    vhigh:['Ультранизький об\u2019єм контрасту; розгляньте альтернативну візуалізацію.',
+           'Післяпроцедурний інтенсивний моніторинг; готовність до НЗТ.',
+           'Мультидисциплінарне планування (кардіолог + нефролог).',
+           'Уникайте додаткового контрастного навантаження найближчими днями.']
+  },
+  gupta: {
+    low: ['Рутинне периопераційне ведення; підтримуйте еуволемію.',
+          'Уникайте надмірного інтраопераційного нефротоксичного навантаження.'],
+    mod: ['Периопераційна гідратація ізотонічним розчином.',
+          'Відмініть НПЗЗ; розгляньте паузу іАПФ/БРА перед операцією.',
+          'Моніторинг креатиніну сироватки протягом 48 год.'],
+    high:['Цілеспрямована інфузійна терапія; уникайте гіпотензії.',
+          'Уникайте йодованого контрасту та аміноглікозидів периопераційно.',
+          'Розгляньте консультацію нефролога; щоденний креатинін 48–72 год.'],
+    vhigh:['Інтенсивний післяопераційний моніторинг функції нирок.',
+           'Готовність до ниркової замісної терапії.',
+           'Мультидисциплінарна передопераційна оптимізація стану пацієнта.',
+           'Перегляньте доцільність, час та обсяг планового втручання.']
+  },
+  akics: {
+    low: ['Стандартне післяопераційне ведення у ВРІТ; підтримуйте еуволемію.',
+          'Контроль креатиніну та погодинного діурезу протягом 48 год.'],
+    mod: ['Оптимізуйте серцевий викид і перфузійний тиск нирок; уникайте венозного застою.',
+          'Уникайте нефротоксичних препаратів (НПЗЗ, аміноглікозиди, надлишок контрасту).',
+          'Щоденний моніторинг креатиніну та діурезу протягом 48–72 год.'],
+    high:['Активна гемодинамічна оптимізація; контроль ЦВТ, уникнення гіперволемії.',
+          'Консультація нефролога; розгляньте ранні маркери ушкодження нирок.',
+          'Перегляньте інфузійну та вазоактивну терапію; уникайте нефротоксинів.',
+          'Щоденний креатинін і діурез; рання діагностика ГУН за KDIGO.'],
+    vhigh:['Інтенсивний моніторинг функції нирок; ранній контакт із нефрологом.',
+           'Готовність до ниркової замісної терапії; забезпечте судинний доступ.',
+           'Цілеспрямована корекція серцевого викиду та венозного застою.',
+           'Мультидисциплінарне ведення; уникайте будь-якого нефротоксичного навантаження.']
+  }
+};
+
+/* ============================================================
+   PROCEDURE SECTION (SECTION C) — dynamic markup
+   ============================================================ */
+function sel(field, options, current) {
+  const opts = options.map(o =>
+    `<option value="${o.v}" ${o.v===current?'selected':''}>${o.l}</option>`).join('');
+  return `<select data-field="${field}" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition">${opts}</select>`;
+}
+function toggle(field, label, checked) {
+  return `<label class="switch flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2.5 cursor-pointer hover:bg-slate-50">
+    <span class="text-sm font-medium text-slate-700">${label}</span>
+    <input type="checkbox" data-field="${field}" ${checked?'checked':''}/><span class="track"><span class="knob"></span></span>
+  </label>`;
+}
+function numField(field, label, hint, value, step) {
+  return `<div>
+    <label class="block text-xs font-semibold text-slate-700 mb-1.5">${label} ${hint?`<span class="text-slate-400 font-normal">${hint}</span>`:''}</label>
+    <input type="number" data-field="${field}" data-kind="number" step="${step||1}" value="${value}"
+      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
+  </div>`;
+}
+function lvefField() {
+  return `<div>
+    <label class="block text-xs font-semibold text-slate-700 mb-1.5">Фракція викиду лівого шлуночка <span class="text-slate-400 font-normal">(%)</span></label>
+    <input type="number" data-field="lvef" data-kind="number" min="5" max="80" value="${state.lvef}"
+      class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 transition" />
+    <p class="text-[11px] text-slate-400 mt-1">Спільне поле для шкал Thakar (поріг &lt;35%) та Mehran (поріг &lt;40%)</p>
+  </div>`;
+}
+
+function renderProcedure() {
+  let html = '';
+  if (state.tab === 'thakar') {
+    DOM.secCDesc.textContent = 'Кардіохірургічні фактори для шкали Thakar';
+    html = `
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Тип операції</label>
+        ${sel('thakarSurgery', [
+          {v:'cabg', l:'Тільки АКШ'},
+          {v:'valve', l:'Тільки клапан'},
+          {v:'cabgvalve', l:'АКШ + клапан'},
+          {v:'other', l:'Інша складна операція (напр. грудна аорта)'}
+        ], state.thakarSurgery)}
+      </div>
+      ${lvefField()}
+      <div class="space-y-2.5 pt-1">
+        ${toggle('thakarIABP','Передопераційний ВАБК (IABP)', state.thakarIABP)}
+        ${toggle('thakarRedo','Повторна операція на серці', state.thakarRedo)}
+        ${toggle('thakarEmergency','Ургентний / екстрений статус операції', state.thakarEmergency)}
+      </div>`;
+  } else if (state.tab === 'mehran') {
+    DOM.secCDesc.textContent = 'Процедурні фактори ПКВ для шкали Mehran 2.0';
+    html = `
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Клінічна картина</label>
+        ${sel('mehranPresentation', [
+          {v:'stable', l:'Планова / стабільна стенокардія'},
+          {v:'ua', l:'Нестабільна стенокардія (ургентна)'},
+          {v:'nstemi', l:'ІМ без елевації ST (NSTEMI)'},
+          {v:'stemi', l:'ІМ з елевацією ST (STEMI)'}
+        ], state.mehranPresentation)}
+      </div>
+      ${lvefField()}
+      ${numField('glucose','Базальна глюкоза крові','(мг/дл)', state.glucose, 1)}
+      ${numField('mehranContrast','Об\u2019єм контрастної речовини','(мл)', state.mehranContrast, 5)}
+      <div class="pt-1">
+        ${toggle('mehranSupport','Гемодинамічна підтримка (ВАБК / Impella)', state.mehranSupport)}
+      </div>`;
+  } else if (state.tab === 'akics') {
+    DOM.secCDesc.textContent = 'Перед-, інтра- та післяопераційні фактори AKICS';
+    html = `
+      <div class="rounded-lg bg-indigo-50/70 border border-indigo-100 p-3">
+        <p class="text-[11px] leading-snug text-indigo-700">
+          <span class="font-bold">Час застосування:</span> AKICS включає інтраопераційні та ранні післяопераційні параметри —
+          шкалу розраховують при надходженні пацієнта у ВРІТ після операції. Вік, креатинін (секція A) та клас NYHA (секція B) використовуються спільно.
+        </p>
+      </div>
+      <div class="space-y-2.5">
+        ${toggle('akicsCombined','Комбінована операція (АКШ + клапан або 2 клапани)', state.akicsCombined)}
+      </div>
+      ${numField('akicsCPB','Час штучного кровообігу','(хв · поріг > 120)', state.akicsCPB, 5)}
+      ${numField('glucose','Передопераційна капілярна глюкоза','(мг/дл · поріг > 140)', state.glucose, 1)}
+      ${numField('akicsCVP','Центральний венозний тиск','(см H₂O · поріг > 14)', state.akicsCVP, 1)}
+      <div class="pt-1">
+        ${toggle('akicsLowCO','Синдром низького серцевого викиду', state.akicsLowCO)}
+      </div>
+      <p class="text-[11px] text-slate-400 -mt-1">
+        Низький серцевий викид за визначенням AKICS: потреба у ≥ 3 вазоактивних препаратах або підтримці ВАБК упродовж 48 год після операції.
+      </p>`;
+  } else {
+    DOM.secCDesc.textContent = 'Фактори некардіохірургічного втручання';
+    html = `
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Хірургічна спеціальність / тип операції</label>
+        ${sel('gSurgery', [
+          {v:'ortho', l:'Ортопедична / кінцівки'},
+          {v:'intraperit', l:'Загальна абдомінальна (інтраперитонеальна)'},
+          {v:'hpb', l:'Гепатобіліарна / шлунково‑кишкова'},
+          {v:'vascular', l:'Судинна (периферична)'},
+          {v:'thoracic', l:'Торакальна'},
+          {v:'urology', l:'Урологічна'},
+          {v:'gyn', l:'Гінекологічна / акушерська'},
+          {v:'other', l:'Інша'}
+        ], state.gSurgery)}
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-slate-700 mb-1.5">Фізичний статус за класифікацією ASA</label>
+        <div class="grid grid-cols-5 gap-1.5" data-seg-group="gAsa">
+          ${['I','II','III','IV','V'].map(v =>
+            `<button type="button" data-seg="gAsa" data-value="${v}" class="seg-btn rounded-lg border py-2 text-sm font-bold">${v}</button>`).join('')}
+        </div>
+      </div>
+      <div class="space-y-2.5 pt-1">
+        ${toggle('gEmergency','Екстрена операція', state.gEmergency)}
+        ${toggle('gHypertension','Артеріальна гіпертензія', state.gHypertension)}
+        ${toggle('gAscites','Асцит', state.gAscites)}
+      </div>`;
+  }
+  DOM.procedureFields.innerHTML = html;
+  syncSegments();
+}
+
+/* ============================================================
+   RESULTS RENDERING
+   ============================================================ */
+function buildGauge(cfg, score) {
+  let track = '';
+  let labels = '';
+  if (cfg.continuous) {
+    cfg.tiers.forEach(t => {
+      const w = ((t.hi - t.lo) / cfg.barMax) * 100;
+      const tone = TONES[t.key];
+      track += `<div style="width:${w}%;background:${tone.bar}" class="opacity-90"></div>`;
+      labels += `<div style="width:${w}%" class="text-center">${t.lo}–${t.hi}</div>`;
+    });
+    DOM.gaugeTrack.innerHTML = track;
+    DOM.gaugeLabels.innerHTML = labels;
+    const pos = (Math.min(Math.max(score, 0), cfg.barMax) / cfg.barMax) * 100;
+    DOM.gaugeMarker.style.left = pos + '%';
+    return;
+  }
+  const total = cfg.barMax + 1;
+  cfg.tiers.forEach(t => {
+    const w = ((t.hi - t.lo + 1) / total) * 100;
+    const tone = TONES[t.key];
+    track += `<div style="width:${w}%;background:${tone.bar}" class="opacity-90"></div>`;
+    const lbl = cfg.isClass ? t.roman : `${t.lo}${t.hi>t.lo?'–'+(t.hi):''}`;
+    labels += `<div style="width:${w}%" class="text-center">${lbl}</div>`;
+  });
+  DOM.gaugeTrack.innerHTML = track;
+  DOM.gaugeLabels.innerHTML = labels;
+  const pos = ((Math.min(Math.max(score,0), cfg.barMax) + 0.5) / total) * 100;
+  DOM.gaugeMarker.style.left = pos + '%';
+}
+
+let lastScore = null;
+function render() {
+  const cfg = CALCS[state.tab];
+  const res = cfg.calc();
+  const score = res.score;
+  const tier = tierFor(cfg, score);
+  const tone = TONES[tier.key];
+
+  // header tone
+  DOM.riskHeader.className = 'px-5 sm:px-6 py-5 transition-colors duration-300 ' + tone.bg;
+
+  // titles
+  DOM.calcTitle.textContent = cfg.title;
+  DOM.scoreUnit.textContent = cfg.unit;
+
+  // score number (with pulse on change)
+  const scoreText = cfg.decimals ? score.toFixed(1) : score;
+  DOM.scoreNum.textContent = scoreText;
+  DOM.scoreNum.className = 'text-5xl font-bold tracking-tighter ' + tone.text;
+  if (lastScore !== null && lastScore !== score) {
+    DOM.scoreNum.classList.remove('score-pulse');
+    void DOM.scoreNum.offsetWidth;
+    DOM.scoreNum.classList.add('score-pulse');
+  }
+  lastScore = score;
+
+  // badge
+  DOM.riskBadge.className = 'flex-none rounded-xl px-3.5 py-2 text-center ' + tone.badge;
+  DOM.riskLabel.textContent = cfg.isClass ? tier.label : tier.label;
+
+  // gauge
+  buildGauge(cfg, score);
+
+  // outcome
+  DOM.outcomeLabel.textContent = cfg.outcomeLabel;
+  DOM.outcomeValue.textContent = tier.outcome;
+  DOM.outcomeValue.className = 'text-lg font-bold tracking-tight mt-0.5 ' + tone.text;
+
+  // secondary metric — contrast volume / eGFR ratio for Mehran
+  DOM.secondaryMetric.innerHTML = renderSecondary(cfg);
+
+  // contributing factors
+  renderFactors(res.factors);
+
+  // evidence
+  DOM.aurocChip.textContent = cfg.auroc;
+  DOM.citationChip.textContent = cfg.citation;
+
+  // recommendations
+  const recs = RECS[state.tab][tier.key] || [];
+  DOM.recList.innerHTML = recs.map(r =>
+    `<li class="flex gap-2.5 text-[13px] leading-snug text-slate-700">
+       <span class="mt-1.5 h-1.5 w-1.5 rounded-full ${tone.dot} flex-none"></span>
+       <span>${r}</span>
+     </li>`).join('');
+
+  // contextual notes
+  DOM.contextNote.innerHTML = renderContext(cfg);
+
+  // update eGFR display
+  renderEGFR();
+}
+
+function renderSecondary(cfg) {
+  if (state.tab !== 'mehran') return '';
+  const egfr = currentEGFR();
+  if (!egfr || egfr <= 0 || !(state.mehranContrast > 0)) return '';
+  const ratio = state.mehranContrast / egfr;
+  let tone = 'text-emerald-700', note = 'безпечно';
+  if (ratio >= 3) { tone = 'text-rose-700'; note = 'перевищено'; }
+  else if (ratio >= 2) { tone = 'text-amber-700'; note = 'межовий'; }
+  return `<div>
+    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Контраст / ШКФ</p>
+    <p class="text-lg font-bold tracking-tight mt-0.5 ${tone}">${ratio.toFixed(2)}</p>
+    <p class="text-[10px] ${tone}">${note} · ціль &lt; 3</p>
+  </div>`;
+}
+
+function renderFactors(factors) {
+  if (!factors.length) {
+    DOM.factorList.innerHTML = `<p class="text-[13px] text-slate-400 py-2">Активних факторів ризику не виявлено — мінімальний внесок у бал.</p>`;
+    return;
+  }
+  DOM.factorList.innerHTML = factors.map(f =>
+    `<div class="flex items-center justify-between gap-3 py-1.5 border-b border-slate-100 last:border-0">
+       <span class="text-[13px] text-slate-700">${f.label}</span>
+       <span class="text-xs font-bold text-slate-500 bg-slate-100 rounded-md px-2 py-0.5 flex-none">+${f.pts}</span>
+     </div>`).join('');
+}
+
+function renderContext(cfg) {
+  const notes = [];
+  if (state.tab === 'mehran') {
+    if (state.mehranSupport)
+      notes.push('Механічна гемодинамічна підтримка (ВАБК / Impella) — незалежний предиктор CA‑AKI; фактично підвищує сукупний ризик понад розрахований бал.');
+    if (state.mehranPresentation === 'stemi')
+      notes.push('STEMI часто супроводжується гемодинамічною нестабільністю — забезпечте адекватну волемію перед контрастуванням.');
+  }
+  if (state.tab === 'gupta') {
+    if (state.gAsa === 'III' || state.gAsa === 'IV' || state.gAsa === 'V')
+      notes.push(`Клас ASA ${state.gAsa} відображає значну системну патологію та підвищений сукупний периопераційний ризик незалежно від ниркового індексу.`);
+  }
+  if (state.tab === 'thakar') {
+    if (state.thakarIABP)
+      notes.push('Передопераційний ВАБК — маркер тяжкого гемодинамічного стану; пильний контроль перфузії нирок інтраопераційно.');
+  }
+  if (state.tab === 'akics') {
+    if (state.akicsLowCO)
+      notes.push('Синдром низького серцевого викиду суттєво знижує перфузію нирок — пріоритет на гемодинамічній оптимізації серцевого викиду.');
+    if (state.akicsCVP > 14)
+      notes.push('ЦВТ > 14 см H₂O вказує на венозний застій нирок (ймовірне перевантаження об\u2019ємом) — розгляньте обережну деконгестію.');
+    if (state.akicsCPB > 120)
+      notes.push('Тривалий штучний кровообіг (> 120 хв) посилює запальну відповідь та ішемічно-реперфузійне ушкодження нирок.');
+  }
+  if (!notes.length) return '';
+  return `<div class="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+    <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Клінічний контекст</p>
+    ${notes.map(n => `<p class="text-[12px] leading-snug text-slate-600">${n}</p>`).join('')}
+  </div>`;
+}
+
+function renderEGFR() {
+  const egfr = computeEGFR(state.creatinine, state.age, state.sex);
+  DOM.egfrValue.textContent = egfr != null ? Math.round(egfr) : '—';
+}
+
+/* ============================================================
+   INPUT SYNC
+   ============================================================ */
+function syncCreatinineField() {
+  const display = state.crUnit === 'umol'
+    ? state.creatinine * MGDL_TO_UMOL
+    : state.creatinine;
+  DOM.crInput.value = state.crUnit === 'umol'
+    ? Math.round(display)
+    : Number(display.toFixed(2));
+  DOM.crInput.step = state.crUnit === 'umol' ? 1 : 0.01;
+}
+
+function syncSegments() {
+  document.querySelectorAll('[data-seg]').forEach(btn => {
+    const field = btn.dataset.seg;
+    const active = state[field] === btn.dataset.value;
+    if (btn.dataset.seg === 'crUnit') {
+      btn.className = 'seg-btn text-[11px] font-semibold px-2 py-0.5 rounded ' +
+        (active ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500');
+    } else if (btn.dataset.seg === 'gAsa') {
+      btn.className = 'seg-btn rounded-lg border py-2 text-sm font-bold ' +
+        (active ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-300 text-slate-600 hover:border-slate-400');
+    } else {
+      btn.className = 'seg-btn rounded-lg border px-3 py-2 text-sm font-medium ' +
+        (active ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-slate-300 text-slate-600 hover:border-slate-400');
+    }
+  });
+}
+
+function syncTabs() {
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const active = b.dataset.tab === state.tab;
+    b.className = 'tab-btn text-[13px] sm:text-sm font-semibold px-3 sm:px-4 py-2 rounded-lg transition-all ' +
+      (active ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700');
+    b.setAttribute('aria-selected', active);
+  });
+  DOM.tabDesc.textContent = CALCS[state.tab].desc;
+}
+
+/* ============================================================
+   EVENT HANDLING (delegated)
+   ============================================================ */
+function clampNum(field, val) {
+  if (field === 'age') return Math.min(110, Math.max(18, val));
+  if (field === 'lvef') return Math.min(80, Math.max(5, val));
+  if (field === 'hemoglobin') return Math.min(22, Math.max(3, val));
+  if (field === 'egfrManual') return Math.min(160, Math.max(1, val));
+  if (field === 'akicsCPB') return Math.min(600, Math.max(0, val));
+  if (field === 'akicsCVP') return Math.min(40, Math.max(0, val));
+  if (field === 'mehranContrast' || field === 'glucose') return Math.max(0, val);
+  return val;
+}
+
+function handleInput(e) {
+  const el = e.target;
+  const field = el.dataset.field;
+  if (!field) return;
+
+  if (el.type === 'checkbox') {
+    state[field] = el.checked;
+  } else if (field === 'creatinine') {
+    let v = parseFloat(el.value);
+    if (isNaN(v)) v = 0;
+    state.creatinine = state.crUnit === 'umol' ? v / MGDL_TO_UMOL : v;
+  } else if (el.dataset.kind === 'number') {
+    let v = parseFloat(el.value);
+    if (isNaN(v)) v = 0;
+    state[field] = clampNum(field, v);
+  } else {
+    state[field] = el.value;
+  }
+  render();
+}
+
+/* segmented control click */
+function handleSegClick(e) {
+  const btn = e.target.closest('[data-seg]');
+  if (!btn) return;
+  const field = btn.dataset.seg;
+  const value = btn.dataset.value;
+
+  if (field === 'crUnit') {
+    state.crUnit = value;
+    syncCreatinineField();
+  } else {
+    state[field] = value;
+  }
+  syncSegments();
+  render();
+}
+
+/* tab switch */
+function switchTab(tab) {
+  if (tab === state.tab) return;
+  state.tab = tab;
+  syncTabs();
+  renderProcedure();
+  // animate panel
+  DOM.procedureFields.classList.remove('fade-in');
+  void DOM.procedureFields.offsetWidth;
+  DOM.procedureFields.classList.add('fade-in');
+  render();
+}
+
+/* eGFR manual toggle */
+function handleEgfrToggle() {
+  const manual = DOM.egfrManualToggle.checked;
+  state.egfrMode = manual ? 'manual' : 'auto';
+  DOM.egfrAutoWrap.classList.toggle('hidden', manual);
+  DOM.egfrManualWrap.classList.toggle('hidden', !manual);
+  if (manual) {
+    // seed manual value with current computed eGFR
+    const c = computeEGFR(state.creatinine, state.age, state.sex);
+    if (c != null) state.egfrManual = Math.round(c);
+    const inp = DOM.egfrManualWrap.querySelector('input');
+    if (inp) inp.value = state.egfrManual;
+  }
+  render();
+}
+
+/* copy summary (local only) */
+function copySummary() {
+  const cfg = CALCS[state.tab];
+  const res = cfg.calc();
+  const tier = tierFor(cfg, res.score);
+  const egfr = currentEGFR();
+  const lines = [
+    'AKI RISK SUITE — ' + cfg.title,
+    '─────────────────────────────',
+    `Вік: ${state.age} р. · Стать: ${state.sex==='male'?'чоловіча':'жіноча'}`,
+    `Креатинін: ${state.creatinine.toFixed(2)} мг/дл · ШКФ: ${egfr!=null?Math.round(egfr):'—'} мл/хв/1.73м²`,
+    `Бал/факторів: ${cfg.decimals ? res.score.toFixed(1) : res.score} ${cfg.unit}`,
+    `Категорія ризику: ${tier.label}`,
+    `${cfg.outcomeLabel}: ${tier.outcome}`,
+    `Валідація: ${cfg.auroc} (${cfg.citation})`,
+    '',
+    'Внесок факторів:',
+    ...res.factors.map(f => `  • ${f.label} (+${f.pts})`),
+    '',
+    'Рекомендації:',
+    ...(RECS[state.tab][tier.key]||[]).map(r => `  • ${r}`)
+  ];
+  const text = lines.join('\n');
+  navigator.clipboard?.writeText(text).then(showToast, () => {
+    // fallback
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast(); } catch(_) {}
+    document.body.removeChild(ta);
+  });
+}
+function showToast() {
+  DOM.toast.style.opacity = '1';
+  setTimeout(() => { DOM.toast.style.opacity = '0'; }, 1800);
+}
+
+/* reset */
+function resetAll() {
+  const tab = state.tab;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.tab = tab;
+  initFromState();
+}
+
+/* push state values into static section A/B inputs */
+function initFromState() {
+  DOM.inputForm.querySelector('[data-field="age"]').value = state.age;
+  syncCreatinineField();
+  DOM.inputForm.querySelector('[data-field="diabetes"]').value = state.diabetes;
+  DOM.inputForm.querySelector('[data-field="chf"]').value = state.chf;
+  DOM.inputForm.querySelector('[data-field="hemoglobin"]').value = state.hemoglobin;
+  DOM.inputForm.querySelector('[data-field="ckd"]').checked = state.ckd;
+  DOM.inputForm.querySelector('[data-field="copd"]').checked = state.copd;
+  DOM.egfrManualToggle.checked = (state.egfrMode === 'manual');
+  DOM.egfrAutoWrap.classList.toggle('hidden', state.egfrMode === 'manual');
+  DOM.egfrManualWrap.classList.toggle('hidden', state.egfrMode !== 'manual');
+  const eInp = DOM.egfrManualWrap.querySelector('input');
+  if (eInp) eInp.value = state.egfrManual;
+  syncTabs();
+  renderProcedure();
+  syncSegments();
+  render();
+}
+
+/* ============================================================
+   WIRING
+   ============================================================ */
+DOM.inputForm.addEventListener('input', handleInput);
+DOM.inputForm.addEventListener('change', handleInput);
+DOM.inputForm.addEventListener('click', handleSegClick);
+DOM.egfrManualToggle.addEventListener('change', handleEgfrToggle);
+
+document.querySelectorAll('.tab-btn').forEach(b =>
+  b.addEventListener('click', () => switchTab(b.dataset.tab)));
+
+[$('copyBtn'), $('copyBtnM')].forEach(b => b && b.addEventListener('click', copySummary));
+[$('resetBtn'), $('resetBtnM')].forEach(b => b && b.addEventListener('click', resetAll));
+
+/* keyboard: 1–4 to switch tabs */
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+  if (e.key === '1') switchTab('thakar');
+  if (e.key === '2') switchTab('mehran');
+  if (e.key === '3') switchTab('akics');
+  if (e.key === '4') switchTab('gupta');
+});
+
+/* ---------- boot ---------- */
+initFromState();
+</script>
+</body>
+</html>
